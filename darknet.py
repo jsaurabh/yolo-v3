@@ -1,5 +1,5 @@
 # imports
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 import numpy as np
 import torch
 import torch.nn as nn
@@ -25,6 +25,15 @@ def parse_config(cfg):
     config = read_line(lines)
 
     blocks = parse_blocks(config)
+
+class DetectionLayer(nn.Module):
+    def __init__(self, anchor):
+        super(DetectionLayer, self).__init__()
+        self.anchors = anchor
+
+class Empty(nn.Module):
+    def __init__(self):
+        super(Empty, self).__init__()
 
 def construct(blocks: List) -> Tuple[dict, torch.nnModuleList]:
     moduleList = nn.ModuleList()
