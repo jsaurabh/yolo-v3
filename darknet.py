@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from utils import read_line, parse_blocks
 
-def parse_config(cfg):
+def parse_config(cfg) -> List:
     """Parse .cfg config file.
 
     Args:
@@ -25,6 +25,7 @@ def parse_config(cfg):
     config = read_line(lines)
 
     blocks = parse_blocks(config)
+    return blocks
 
 class DetectionLayer(nn.Module):
     def __init__(self, anchor):
@@ -35,53 +36,53 @@ class Empty(nn.Module):
     def __init__(self):
         super(Empty, self).__init__()
 
-def construct(blocks: List) -> Tuple[dict, torch.nnModuleList]:
+def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
     moduleList = nn.ModuleList()
+    output_filters = []
+    prev_filters = 3
 
     for idx, layer in enumerate(blocks[1:]):
-        module = nn.Sequential()
-        output_filters = []
-        prev_filters = 3
+        modules = nn.Sequential()
 
         if layer['arch'] == 'convolutional':
             activation = layer['activation']
-            filters = layer['filters']
-            stride = layer['stride']
-            kernel = layer['size']
-            padding = layer['pad']
+            filters = int(layer['filters'])
+            stride = int(layer['stride'])
+            kernel = int(layer['size'])
+            padding = int(layer['pad'])
 
             if padding:
                 pad = (kernel - 1) // 2
             try:
-                batch_norm = layer['batch_normalize']
+                batch_norm = int(layer['batch_normalize'])
                 bias = False
             except:
                 batch_norm = 0
                 bias = True
             
-            conv = nn.Conv2D(prev_filters, filters, kernel, stride, pad, bias = bias)
-            moduleList.add_module(f"conv_{idx}", conv)
+            conv = nn.Conv2d(prev_filters, filters, kernel, stride, pad, bias = bias)
+            modules.add_module(f"conv_{idx}", conv)
 
             if batch_norm:
-                moduleList.add_module(f"bn_{idx}", nn.BatchNorm2D(filters))
+                modules.add_module(f"bn_{idx}", nn.BatchNorm2d(filters))
             
             if activation == "leaky":
-                moduleList.add_module(f"leaky_{idx}", nn.LeakyReLU(0.1, inplace = True))
+                modules.add_module(f"leaky_{idx}", nn.LeakyReLU(0.1, inplace = True))
         
         elif layer['arch'] == 'upsample':
             stride = layer['stride']
-            upsample = nn.UpSample(scale_factor = 2, mode = 'bilinear')
-            module.add_module(f"upsample_{idx}", upsample)
+            upsample = nn.Upsample(scale_factor = 2, mode = 'bilinear')
+            modules.add_module(f"upsample_{idx}", upsample)
 
         elif layer['arch'] == 'shortcut':
             empty = Empty()
-            module.add_module(f"shortcut_{idx}", empty)
+            modules.add_module(f"shortcut_{idx}", empty)
         
         elif layer['arch'] == 'route':
-            l = layer['layers'].split(',')
-            start = l[0]
+            l = layer['layers '].split(',')
+            start = int(l[0])
             try:
-                end = l[1]
+                end = int(l[1])
             except:
                 end = 0
             
@@ -91,7 +92,7 @@ def construct(blocks: List) -> Tuple[dict, torch.nnModuleList]:
                 end -= idx
             
             route = Empty()
-            module.add_module(f"route_{idx}", route)
+            modules.add_module(f"route_{idx}", route)
             
             if end < 0:
                 filters = output_filters[start + idx] + output_filters[idx + end]
@@ -99,19 +100,22 @@ def construct(blocks: List) -> Tuple[dict, torch.nnModuleList]:
                 filter = output_filters[start + idx]
             
         elif layer['arch'] == 'yolo':
-            mask = layer['mask'].split(',')
+            mask = layer['mask '].split(',')
             mask = [int(m) for m in mask]
-
-            anchors = layer['anchors'].split(',')
+ 
+            anchors = layer['anchors '].split(',')
             anchors = [int(a) for a in anchors]
             anchor = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
             anchor = [anchor[m] for m in mask]
 
             detect = DetectionLayer(anchor)
-            module.add_module(f"Detection_{idx}", detect)
+            modules.add_module(f"Detection_{idx}", detect)
     
-        moduleList.append(module)
+        moduleList.append(modules)
         prev_filters = filters
         output_filters.append(filters)
     
     return (blocks[0], moduleList)
+
+blocks = parse_config("cfgs/yolov3.cfg")
+net, moduleList = construct(blocks)
