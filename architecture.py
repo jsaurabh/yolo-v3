@@ -1,9 +1,7 @@
 # imports
 from typing import Tuple, Dict, List
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from utils import read_line, parse_blocks
 
@@ -117,5 +115,3 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
     
     return (blocks[0], moduleList)
 
-blocks = parse_config("cfgs/yolov3.cfg")
-net, moduleList = construct(blocks)
