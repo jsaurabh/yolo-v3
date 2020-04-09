@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from architecture import parse_config, construct
-from utils import predict_transform
+from utils import predict_transform, get_input
 
 class DarkNet(nn.Module):
     def __init__(self, config):
@@ -24,8 +24,8 @@ class DarkNet(nn.Module):
                 x = self.moduleList[idx](x)
             
             elif layer == 'shortcut':
-                orig = layer['from']
-                x = features[idx - 1] + features[idx + orig]
+                orig = module['from']
+                x = features[idx - 1] + features[idx + int(orig)]
 
             elif layer == 'route':
                 layers == module['layers ']
@@ -48,9 +48,9 @@ class DarkNet(nn.Module):
                 
 
             elif layer == 'yolo':
-                anchors = self.modueList[idx][0].anchors
-                in_dim = self.net['height']
-                num_classes = module['classes']
+                anchors = self.moduleList[idx][0].anchors
+                in_dim = int(self.net['height'])
+                num_classes = int(module['classes'])
 
                 x = x.data
                 x = predict_transform(x, anchors, in_dim, num_classes)
@@ -64,3 +64,8 @@ class DarkNet(nn.Module):
             features[idx] = x
             
         return detections   
+
+model = DarkNet('cfgs/yolov3.cfg')
+inp = get_input('s')
+pred = model(inp)
+print(pred)

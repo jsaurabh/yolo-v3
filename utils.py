@@ -1,7 +1,9 @@
 #utils
-from typing import List
+from typing import List, Union
 import torch
+import cv2 as cv
 import numpy as np
+from pathlib import Path
 
 def read_line(lines: List) -> List:
     """
@@ -60,15 +62,15 @@ def predict_transform(pred, anchors, in_dim, num_classes):
     pred[:,:,1] = torch.sigmoid(pred[:,:,1])
     pred[:,:,4] = torch.sigmoid(pred[:,:,4])
 
-    a, b = np.meshgrid(np.arrange(grid_size), np.arrange(grid_size))
-
+    a, b = np.meshgrid(np.arange(grid_size), np.arange(grid_size))
+    print(a.shape, b.shape)
     x_offset = torch.FloatTensor(a).view(-1, 1)
     y_offset = torch.FloatTensor(b).view(-1, 1)
-
+    print(x_offset.shape, y_offset.shape)
     x_y_offset = torch.cat((x_offset, y_offset), 1).repeat(1, num_anchors).view(-1, 2).unsqueeze(0)
     pred[:,:,:2] += x_y_offset
 
-    anchors = torch.FloatTensor(anchors)
+    anchors = torch.Tensor(anchors)
     anchors.repeat(grid_size ** 2, 1).unsqueeze(0)
     pred[:,:,2:4] = torch.exp(pred[:,:,2:4]) * anchors
     pred[:,:,5:5 + num_classes] = torch.sigmoid(pred[:,:,5:5 + num_classes])
@@ -76,4 +78,11 @@ def predict_transform(pred, anchors, in_dim, num_classes):
     
     return pred
 
-
+def get_input(img: Union[Path, str]) -> torch.Tensor:
+    image = cv.imread('giraffe.png')
+    image = cv.resize(image, (416, 416))
+    image = image[:,:,::-1].transpose((2, 0, 1))
+    image = image[np.newaxis,:,:,:]/255.0
+    image = torch.from_numpy(image).float()
+    # print(type(torch.tensor(image)))
+    return image.clone().detach()
