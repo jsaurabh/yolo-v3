@@ -99,7 +99,7 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
             if end < 0:
                 filters = output_filters[start + idx] + output_filters[idx + end]
             else:
-                filter = output_filters[start + idx]
+                filters = output_filters[start + idx]
             
         elif layer['arch'] == 'yolo':
             mask = layer['mask'].split(',')
@@ -107,10 +107,10 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
  
             anchors = layer['anchors'].split(',')
             anchors = [int(a) for a in anchors]
-            anchor = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
-            anchor = [anchor[m] for m in mask]
+            anchors = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
+            anchors = [anchors[m] for m in mask]
 
-            detect = DetectionLayer(anchor)
+            detect = DetectionLayer(anchors)
             modules.add_module(f"Detection_{idx}", detect)
 
         moduleList.append(modules)

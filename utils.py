@@ -54,10 +54,12 @@ def predict_transform(pred, in_dim, anchors, num_classes):
     grid_size = in_dim // stride
     bbox_attrs = 5 + num_classes
     num_anchors = len(anchors)
+    pred = pred.view(batch, bbox_attrs * num_anchors, grid_size*grid_size)
+    pred = pred.transpose(1, 2).contiguous()
 
-    pred = pred.view(batch, bbox_attrs * num_anchors, grid_size*grid_size).transpose(1, 2).contiguous()
     pred = pred.view(batch, grid_size * grid_size * num_anchors, bbox_attrs)
     anchors = [(a[0]/stride, a[1]/stride) for a in anchors]
+
     pred[:,:,0] = torch.sigmoid(pred[:,:,0])
     pred[:,:,1] = torch.sigmoid(pred[:,:,1])
     pred[:,:,4] = torch.sigmoid(pred[:,:,4])
@@ -79,7 +81,7 @@ def predict_transform(pred, in_dim, anchors, num_classes):
 
 def get_input(img: Union[Path, str]) -> torch.Tensor:
     image = cv.imread('giraffe.png')
-    image = cv.resize(image, (416, 416))
+    image = cv.resize(image, (608, 608))
     image = image[:,:,::-1].transpose((2, 0, 1))
     image = image[np.newaxis,:,:,:]/255.0
     image = torch.from_numpy(image).float()

@@ -20,10 +20,9 @@ class DarkNet(nn.Module):
 
         for idx, module in enumerate(modules):
             layer = (module['arch'])
-            print(layer)
+            # print(idx, layer)
+
             if layer == 'convolutional' or layer == 'upsample':
-                print(x.shape)
-                # print(self.moduleList[idx](x))
                 x = self.moduleList[idx](x)
                 features[idx] = x
 
@@ -34,16 +33,13 @@ class DarkNet(nn.Module):
 
             elif layer == 'route':
                 layers = module['layers']
-                print(idx, layers)
                 layers = [int(l) for l in layers]
-                print(idx, layers)
 
                 if layers[0] > 0:
                     layers[0] = layers[0] - idx
                 
                 if len(layers) == 1:
                     x = features[idx + (layers[0])]
-                    print(x)
                 else:
                     if (layers[1]) > 0:
                         layers[1] = layers[1] - idx
@@ -67,8 +63,7 @@ class DarkNet(nn.Module):
                 else:
                     detections = torch.cat((detections, x), 1)
 
-                features[idx] = features[idx-1]
-            
+                features[idx] = features[idx-1]            
         try:
             return detections   
         except:
@@ -78,4 +73,4 @@ model = DarkNet('cfgs/yolov3.cfg')
 inp = get_input('s')
 # print(model)
 pred = model(inp)
-# print(pred)
+print(pred)
