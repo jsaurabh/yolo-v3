@@ -38,9 +38,13 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
     moduleList = nn.ModuleList()
     output_filters = []
     prev_filters = 3
+    idx = 0
 
-    for idx, layer in enumerate(blocks[1:]):
+    for _, layer in enumerate(blocks):
         modules = nn.Sequential()
+
+        if layer['arch'] == 'net':
+            continue
 
         if layer['arch'] == 'convolutional':
             activation = layer['activation']
@@ -68,8 +72,8 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
                 modules.add_module(f"leaky_{idx}", nn.LeakyReLU(0.1, inplace = True))
         
         elif layer['arch'] == 'upsample':
-            stride = layer['stride']
-            upsample = nn.Upsample(scale_factor = 2, mode = 'bilinear')
+            # stride = int(layer['stride'])
+            upsample = nn.Upsample(scale_factor = 2, mode = 'nearest')
             modules.add_module(f"upsample_{idx}", upsample)
 
         elif layer['arch'] == 'shortcut':
@@ -77,10 +81,10 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
             modules.add_module(f"shortcut_{idx}", empty)
         
         elif layer['arch'] == 'route':
-            l = layer['layers '].split(',')
-            start = int(l[0])
+            layer['layers'] = layer['layers'].split(',')
+            start = int(layer['layers'][0])
             try:
-                end = int(l[1])
+                end = int(layer['layers'][1])
             except:
                 end = 0
             
@@ -98,20 +102,21 @@ def construct(blocks: List) -> Tuple[dict, torch.nn.ModuleList]:
                 filter = output_filters[start + idx]
             
         elif layer['arch'] == 'yolo':
-            mask = layer['mask '].split(',')
+            mask = layer['mask'].split(',')
             mask = [int(m) for m in mask]
  
-            anchors = layer['anchors '].split(',')
+            anchors = layer['anchors'].split(',')
             anchors = [int(a) for a in anchors]
             anchor = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
             anchor = [anchor[m] for m in mask]
 
             detect = DetectionLayer(anchor)
             modules.add_module(f"Detection_{idx}", detect)
-    
+
         moduleList.append(modules)
         prev_filters = filters
         output_filters.append(filters)
+        idx += 1
     
     return (blocks[0], moduleList)
 

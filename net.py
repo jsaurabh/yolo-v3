@@ -20,8 +20,10 @@ class DarkNet(nn.Module):
 
         for idx, module in enumerate(modules):
             layer = (module['arch'])
-
+            print(layer)
             if layer == 'convolutional' or layer == 'upsample':
+                print(x.shape)
+                # print(self.moduleList[idx](x))
                 x = self.moduleList[idx](x)
                 features[idx] = x
 
@@ -31,16 +33,17 @@ class DarkNet(nn.Module):
                 features[idx] = x
 
             elif layer == 'route':
-                layers = module['layers ']
+                layers = module['layers']
+                print(idx, layers)
                 layers = [int(l) for l in layers]
-
+                print(idx, layers)
 
                 if layers[0] > 0:
                     layers[0] = layers[0] - idx
                 
                 if len(layers) == 1:
                     x = features[idx + (layers[0])]
-                
+                    print(x)
                 else:
                     if (layers[1]) > 0:
                         layers[1] = layers[1] - idx
