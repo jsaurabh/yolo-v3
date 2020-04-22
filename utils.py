@@ -45,17 +45,18 @@ def parse_blocks(lines: List) -> List:
     blocks.append(block)
     return blocks
 
-def predict_transform(pred, anchors, in_dim, num_classes):
+def predict_transform(pred, in_dim, anchors, num_classes):
     """
     """
     batch = pred.size(0)
+    # print(batch.shape)
     stride = in_dim // pred.size(2)
     grid_size = in_dim // stride
     bbox_attrs = 5 + num_classes
     num_anchors = len(anchors)
 
-    pred = pred.view(batch, bbox_attrs * num_anchors, grid_size**2).transpose(1, 2).contiguous()
-    pred = pred.view(batch, (grid_size ** 2) * num_anchors, bbox_attrs)
+    pred = pred.view(batch, bbox_attrs * num_anchors, grid_size*grid_size).transpose(1, 2).contiguous()
+    pred = pred.view(batch, grid_size * grid_size * num_anchors, bbox_attrs)
     anchors = [(a[0]/stride, a[1]/stride) for a in anchors]
 
     pred[:,:,0] = torch.sigmoid(pred[:,:,0])
@@ -63,15 +64,17 @@ def predict_transform(pred, anchors, in_dim, num_classes):
     pred[:,:,4] = torch.sigmoid(pred[:,:,4])
 
     a, b = np.meshgrid(np.arange(grid_size), np.arange(grid_size))
-    print(a.shape, b.shape)
+    # print(a.shape, b.shape)
     x_offset = torch.FloatTensor(a).view(-1, 1)
     y_offset = torch.FloatTensor(b).view(-1, 1)
-    print(x_offset.shape, y_offset.shape)
+    # print(x_offset.shape, y_offset.shape)
     x_y_offset = torch.cat((x_offset, y_offset), 1).repeat(1, num_anchors).view(-1, 2).unsqueeze(0)
     pred[:,:,:2] += x_y_offset
 
-    anchors = torch.Tensor(anchors)
-    anchors.repeat(grid_size ** 2, 1).unsqueeze(0)
+    anchors = torch.FloatTensor(anchors)
+    anchors.repeat(grid_size * grid_size, 1).unsqueeze(0)
+    print(anchors.shape)
+    print(pred.shape)
     pred[:,:,2:4] = torch.exp(pred[:,:,2:4]) * anchors
     pred[:,:,5:5 + num_classes] = torch.sigmoid(pred[:,:,5:5 + num_classes])
     pred[:,:,:4] *= stride
@@ -84,5 +87,4 @@ def get_input(img: Union[Path, str]) -> torch.Tensor:
     image = image[:,:,::-1].transpose((2, 0, 1))
     image = image[np.newaxis,:,:,:]/255.0
     image = torch.from_numpy(image).float()
-    # print(type(torch.tensor(image)))
     return image.clone().detach()
