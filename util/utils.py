@@ -70,7 +70,22 @@ def load_classes(classfile):
     f = open(classfile, 'r')
     names = f.read().split("\n")[:-1]
     return names
-    
+
+def prep_image(image, in_dim):
+    image = cv.resize(image, (in_dim, in_dim))
+    img = image[:,:,::-1].transpose((2,0,1)).copy()
+    return torch.from_numpy(img).float().div(255.0).unsqueeze(0)
+
+def pad_square(image, in_dim):
+    imw, imh = image.shape[0], image.shape[1]
+    w, h = in_dim
+    nw = int(imw * min(w/imw, h/imh))
+    nh = int(imh * min(m/imw, h/imh))
+    resize = cv.resize(image, (nw, nh), interpolation = cv.INTER_CUBIC)
+    canvas = np.full((h, w, 3), 128)
+    canvas[(h-nh)//2:(h-nh)//2 + nh,(w-nw)//2:(w-nw)//2 + nw,  :] = resize
+    return canvas
+ 
 def predict_transform(pred, in_dim, anchors, num_classes):
     """
     """
@@ -116,7 +131,7 @@ def unique(t):
     nump = t.cpu().numpy()
     unique = np.unique(nump)
     unique = torch.from_numpy(unique)
-    res = tensor.new(unique.shape)
+    res = t.new(unique.shape)
     res.copy_(unique)
     return res
 
@@ -146,19 +161,19 @@ def display(pred, confidence, num_classes, nms_conf = 0.4):
     confidence_mask = (pred[:,:,4] > confidence).float().unsqueeze(2)
     pred *= confidence_mask
 
-    corners = pred.new(pred.shape)
+    corner = pred.new(pred.shape)
     corner[:,:,0] = (pred[:,:,0] - pred[:,:,2])/2
     corner[:,:,1] = (pred[:,:,1] - pred[:,:,3])/2
     corner[:,:,2] = (pred[:,:,0] - pred[:,:,2])/2
     corner[:,:,3] = (pred[:,:,1] - pred[:,:,3])/2
-    pred[:,:,:4] = corners[:,:,:4]
+    pred[:,:,:4] = corner[:,:,:4]
 
     batch = pred.size(0)
 
     for idx in range(batch):
         prd = pred[idx]
         max_c, max_c_score = torch.max(prd[:,5:5+ num_classes], 1)
-        max_confidence = max_c_score.float.unsqueeze(1)
+        max_confidence = max_c_score.float().unsqueeze(1)
         max_c = max_c.float().unsqueeze(1)
 
         seq = (prd[:,:5], max_c, max_confidence)
