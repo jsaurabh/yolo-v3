@@ -65,6 +65,11 @@ def parse_config(cfg) -> List:
 
     blocks = parse_blocks(config)
     return blocks
+
+def load_classes(classfile):
+    f = open(classfile, 'r')
+    names = f.read().split("\n")[:-1]
+    return names
     
 def predict_transform(pred, in_dim, anchors, num_classes):
     """
