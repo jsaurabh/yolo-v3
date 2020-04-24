@@ -66,17 +66,18 @@ def parse_config(cfg) -> List:
     blocks = parse_blocks(config)
     return blocks
 
-def load_classes(classfile):
+def load_classes(classfile: str) -> List:
     f = open(classfile, 'r')
     names = f.read().split("\n")[:-1]
     return names
 
-def prep_image(image, in_dim):
+def prep_image(image: np.ndarray, in_dim: int) -> torch.Tensor:
     image = cv.resize(image, (in_dim, in_dim))
     img = image[:,:,::-1].transpose((2,0,1)).copy()
-    return torch.from_numpy(img).float().div(255.0).unsqueeze(0)
+    img = torch.from_numpy(img).float().div(255.0).unsqueeze(0)
+    return img
 
-def pad_square(image, in_dim):
+def pad_square(image: np.ndarray, in_dim: int) -> torch.Tensor:
     imw, imh = image.shape[0], image.shape[1]
     w, h = in_dim
     nw = int(imw * min(w/imw, h/imh))
@@ -86,7 +87,7 @@ def pad_square(image, in_dim):
     canvas[(h-nh)//2:(h-nh)//2 + nh,(w-nw)//2:(w-nw)//2 + nw,  :] = resize
     return canvas
  
-def predict_transform(pred, in_dim, anchors, num_classes):
+def predict_transform(pred: torch.Tensor, in_dim: int, anchors: List, num_classes: int) -> torch.Tensor:
     """
     """
     batch = pred.size(0)
@@ -127,7 +128,7 @@ def get_input(img: Union[Path, str]) -> torch.Tensor:
     image = torch.from_numpy(image).float()
     return image.clone().detach()
 
-def unique(t):
+def unique(t: torch.Tensor) -> torch.Tensor:
     nump = t.cpu().numpy()
     unique = np.unique(nump)
     unique = torch.from_numpy(unique)
@@ -135,8 +136,7 @@ def unique(t):
     res.copy_(unique)
     return res
 
-def ious(box1, box2):
-
+def ious(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
     b1_x1, b1_y1, b1_x2, b1_y2 = box1[:,0], box1[:,1], box1[:,2], box1[:,3]
     b2_x1, b2_y1, b2_x2, b2_y2 = box2[:,0], box2[:,1], box2[:,2], box2[:,3]
     
@@ -154,7 +154,7 @@ def ious(box1, box2):
     
     return iou
 
-def display(pred, confidence, num_classes, nms_conf = 0.4):
+def display(pred: torch.Tensor, confidence: float, num_classes: int, nms_conf: float = 0.4) -> Union[torch.Tensor, int]:
     """
     """
     write = 0

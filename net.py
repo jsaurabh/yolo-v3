@@ -2,7 +2,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from architecture import construct
 from util.utils import parse_config, predict_transform, get_input
 
@@ -12,7 +11,7 @@ class DarkNet(nn.Module):
         self.blocks = parse_config(config)
         self.net, self.moduleList = construct(self.blocks)
 
-    def load_weights(self, weights):
+    def load_weights(self, weights: str):
         """
         """
         f = open(weights, 'rb')
@@ -70,7 +69,7 @@ class DarkNet(nn.Module):
                 w = w.view_as(conv.weight.data)
                 conv.weight.data.copy_(w)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         """
         
