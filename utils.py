@@ -4,6 +4,7 @@ import torch
 import cv2 as cv
 import numpy as np
 from pathlib import Path
+from torch import tensor
 
 def read_line(lines: List) -> List:
     """
@@ -45,7 +46,6 @@ def parse_blocks(lines: List) -> List:
     blocks.append(block)
     return blocks
 
-
 def predict_transform(pred, in_dim, anchors, num_classes):
     """
     """
@@ -86,3 +86,48 @@ def get_input(img: Union[Path, str]) -> torch.Tensor:
     image = image[np.newaxis,:,:,:]/255.0
     image = torch.from_numpy(image).float()
     return image.clone().detach()
+
+def unique(t):
+    nump = t.cpu().numpy()
+    unique = np.unique(nump)
+    unique = torch.from_numpy(unique)
+    res = tensor.new(unique.shape)
+    res.copy_(unique)
+    return res
+    
+def display(pred, confidence, num_classes, nms_conf = 0.4):
+    """
+    """
+    
+    confidence_mask = (pred[:,:,4] > confidence).float().unsqueeze(2)
+    pred *= confidence_mask
+
+    corners = pred.new(pred.shape)
+    corner[:,:,0] = (pred[:,:,0] - pred[:,:,2])/2
+    corner[:,:,1] = (pred[:,:,1] - pred[:,:,3])/2
+    corner[:,:,2] = (pred[:,:,0] - pred[:,:,2])/2
+    corner[:,:,3] = (pred[:,:,1] - pred[:,:,3])/2
+    pred[:,:,:4] = corners[:,:,:4]
+
+    batch = pred.size(0)
+
+    for idx in range(batch):
+        prd = pred[idx]
+        max_c, max_c_score = torch.max(prd[:,5:5+ num_classes], 1)
+        max_confidence = max_c_score.float.unsqueeze(1)
+        max_c = max_c.float().unsqueeze(1)
+
+        seq = (prd[:,:5], max_c, max_confidence)
+        prd = torch.cat(seq, 1)
+
+        non_zero_idx = torch.nonzero(prd[:,4])
+        try:
+            prd = prd[non_zero_idx.squeeze(), :].view(-1, 7)
+        except:
+            continue
+
+        if prd.shape[0] == 0:
+            continue
+
+        classes = unique(prd[:, -1])
+
