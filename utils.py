@@ -94,11 +94,30 @@ def unique(t):
     res = tensor.new(unique.shape)
     res.copy_(unique)
     return res
+
+def ious(box1, box2):
+
+    b1_x1, b1_y1, b1_x2, b1_y2 = box1[:,0], box1[:,1], box1[:,2], box1[:,3]
+    b2_x1, b2_y1, b2_x2, b2_y2 = box2[:,0], box2[:,1], box2[:,2], box2[:,3]
     
+    inter_rect_x1 =  torch.max(b1_x1, b2_x1)
+    inter_rect_y1 =  torch.max(b1_y1, b2_y1)
+    inter_rect_x2 =  torch.min(b1_x2, b2_x2)
+    inter_rect_y2 =  torch.min(b1_y2, b2_y2)
+    
+    inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * torch.clamp(inter_rect_y2 - inter_rect_y1 + 1, min=0)
+ 
+    b1_area = (b1_x2 - b1_x1 + 1)*(b1_y2 - b1_y1 + 1)
+    b2_area = (b2_x2 - b2_x1 + 1)*(b2_y2 - b2_y1 + 1)
+    
+    iou = inter_area / (b1_area + b2_area - inter_area)
+    
+    return iou
+
 def display(pred, confidence, num_classes, nms_conf = 0.4):
     """
     """
-    
+    write = 0
     confidence_mask = (pred[:,:,4] > confidence).float().unsqueeze(2)
     pred *= confidence_mask
 
@@ -130,4 +149,39 @@ def display(pred, confidence, num_classes, nms_conf = 0.4):
             continue
 
         classes = unique(prd[:, -1])
+        for cls in classes:
+            mask = prd*(prd[:,-1] == cls).float().unsqueeze(1)
+            cls_mask_idx = torch.nonzero(mask[:,-2]).squeeze()
+            prd_cls = prd[cls_mask_idx].view(-1,7)
 
+            confidence_sort_idx = torch.sort(prd_cls[:,4], descending = True )[1]
+            prd_cls = prd_cls[confidence_sort_idx]
+            index = prd_cls.size(0)
+
+            for i in range(index):
+                try:
+                    iou = ious(prd_cls[i].unsqueeze(0), prd_cls[i+1:])  
+                except:
+                    break  
+                    
+                iou_mask = (iou < nms_conf).float().unsqueeze(1)
+                prd_cls[i+1:] *= iou_mask
+
+                non_zero_idx = torch.nonzero(prd_cls[:,4]).squeeze()
+                prd_cls = prd_cls[non_zero_idx].view(-1, 7)
+
+
+            batch_idx = prd_cls.new(prd_cls.size(0), 1).fill_(idx)
+            seq = batch_idx, prd_cls
+
+            if not write:
+                output = torch.cat(seq, 1)
+                write = True
+            else:
+                output = torch.cat((output, torch.cat(seq, 1)))
+
+    try:
+        return output
+    except:
+        return 0
+    
