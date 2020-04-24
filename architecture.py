@@ -3,28 +3,6 @@ from typing import Tuple, Dict, List
 import torch
 import torch.nn as nn
 
-from utils import read_line, parse_blocks
-
-def parse_config(cfg) -> List:
-    """Parse .cfg config file.
-
-    Args:
-        cfg (): config file with .cfg file extension
-    
-
-    Returns:
-        list: list of dictionaries. Each dictionary describes a single block in
-        the architecture.
-    """
-    lines = []
-    with open(cfg, 'r') as config:
-        for line in config:
-            lines.append(line.strip('\n'))
-    config = read_line(lines)
-
-    blocks = parse_blocks(config)
-    return blocks
-
 class DetectionLayer(nn.Module):
     def __init__(self, anchor):
         super(DetectionLayer, self).__init__()

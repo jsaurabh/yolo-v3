@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from architecture import parse_config, construct
-from utils import predict_transform, get_input
+from architecture import construct
+from util.utils import parse_config, predict_transform, get_input
 
 class DarkNet(nn.Module):
     def __init__(self, config   ):

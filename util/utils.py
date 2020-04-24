@@ -46,6 +46,26 @@ def parse_blocks(lines: List) -> List:
     blocks.append(block)
     return blocks
 
+def parse_config(cfg) -> List:
+    """Parse .cfg config file.
+
+    Args:
+        cfg (): config file with .cfg file extension
+    
+
+    Returns:
+        list: list of dictionaries. Each dictionary describes a single block in
+        the architecture.
+    """
+    lines = []
+    with open(cfg, 'r') as config:
+        for line in config:
+            lines.append(line.strip('\n'))
+    config = read_line(lines)
+
+    blocks = parse_blocks(config)
+    return blocks
+    
 def predict_transform(pred, in_dim, anchors, num_classes):
     """
     """
