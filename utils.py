@@ -80,7 +80,7 @@ def predict_transform(pred, in_dim, anchors, num_classes):
     return pred
 
 def get_input(img: Union[Path, str]) -> torch.Tensor:
-    image = cv.imread('giraffe.png')
+    image = cv.imread('images/' + img)
     image = cv.resize(image, (608, 608))
     image = image[:,:,::-1].transpose((2, 0, 1))
     image = image[np.newaxis,:,:,:]/255.0
