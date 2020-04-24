@@ -130,11 +130,3 @@ class DarkNet(nn.Module):
         except:
             return 0
 
-model = DarkNet('cfgs/yolov3.cfg')
-print("Model initiated\n")
-model.load_weights('weights/yolov3.weights')
-print("Weights loaded\n")
-inp = get_input('giraffe.png')
-# print(model)
-pred = model(inp)
-print(pred.shape)
